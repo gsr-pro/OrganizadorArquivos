@@ -1,52 +1,49 @@
-FileSieve-Turbo 🌪️
-FileSieve-Turbo é um motor de organização de arquivos de alta escala. Ele foi desenvolvido para lidar com cenários extremos (milhares ou milhões de arquivos), realizando a extração recursiva de compactados e a categorização por extensão em uma única passada otimizada.
+# Organizador de Arquivos - Nível Ouro (Tax Transformation)
 
-🚀 Diferenciais da Versão Turbo
-Sharding de Diretórios: Para evitar lentidão no sistema de arquivos ao abrir pastas com milhares de arquivos, o script utiliza Sharding por Hash (Blake2b). Os arquivos são distribuídos em subpastas hexadecimais (ex: JPG/a1/f2/foto.jpg), garantindo performance de leitura/escrita constante.
+## 🎯 Objetivo
+O **Organizador de Arquivos** é uma ferramenta de alta performance construída para a área Fiscal/Tributária (Tax Transformation). O principal objetivo da aplicação é gerenciar, extrair, classificar e buscar **volumes massivos de arquivos fiscais** (XMLs de NFe/CTe/NFSe, arquivos SPED, PDFs, etc.) de forma rápida, segura e automatizada, sem que haja travamentos ou limites de limite de arquivos em pastas do Windows.
 
-Extração Segura (Anti-ZipBomb): Proteção integrada contra ataques de descompressão infinita, limitando o tamanho total descompactado por arquivo.
+## 🧩 Módulos do Sistema
 
-Pipeline de Mover Rápido: Utiliza os.replace para renomeações atômicas, minimizando o overhead de I/O em discos SSD/NVMe.
+O sistema segue princípios de *Separation of Concerns* (Separação de Responsabilidades), dividindo a interface visual do processamento bruto:
 
-Recuperação de Falhas de Compactação:
+1. **`app.py` (Frontend / Interface):**
+   - É o ponto de entrada da aplicação.
+   - Interface Gráfica moderna construída em **PySide6**.
+   - Gerencia a interação do usuário, visualização de logs, preenchimento de formulários e exibição da tabela de resultados.
 
-Invalidos: Arquivos corrompidos são movidos para pastas específicas para inspeção manual.
+2. **`workers.py` (Backend / Assincronismo):**
+   - Camada responsável por isolar processos demorados em threads em segundo plano (`QThread`), garantindo que a UI (Interface) nunca congele.
+   - Contém a lógica de busca de altíssima performance usando `os.scandir` em formato de Pilha (Stack).
+   - Gerencia operações de *I/O Bound* pesadas, como cópia de arquivos em lote e extração rápida de texto sem carregar árvores de XML inteiras na memória.
 
-Pendentes: Compactados que foram extraídos com sucesso, mas que o sistema não permitiu deletar (arquivo em uso), são isolados para não gerar duplicidade.
+3. **`OrganizaDestino_extensao.py` (Motor de Extensão):**
+   - Responsável por separar arquivos unicamente por suas extensões físicas (`.pdf`, `.xml`, `.xlsx`, etc.).
+   - Processa a descompactação automática e recursiva de arquivos `.zip` e `.rar`.
+   - Inclui rotinas de exclusão de pastas vazias pós-processamento.
 
-Suporte a RAR Multi-volume: Identifica e processa apenas o primeiro volume (.part1.rar), evitando erros de extração duplicada.
+4. **`OrganizaDestino_por_tipo.py` (Motor de Conteúdo Fiscal):**
+   - Não depende da extensão do arquivo, ele analisa o **conteúdo** para classificar de forma contábil/fiscal.
+   - Categoriza em: *NFe, CTe, NFSe (Nacional e Municipal), Eventos, SPED (ECD, ECF, EFD, FISS)*.
 
-🛠️ Arquitetura Técnica
-O script opera em um modelo de Pipeline Multithread:
+## 🏗️ Arquitetura de Dados e Performance
 
-Scanner (Produtor): Varre o disco usando os.scandir (mais rápido que os.listdir) e alimenta uma fila de alta prioridade.
+A arquitetura do projeto foi desenhada para o "nível enterprise" de manipulação de dados em disco, possuindo as seguintes tratativas técnicas:
 
-Workers (Consumidores): Um pool de threads consome a fila e realiza a lógica de movimentação e criação de diretórios em paralelo.
+* **Sharding (Fragmentação Inteligente):**
+  A funcionalidade de sharding previne que o limite do File System (NTFS) ou o Windows Explorer travem tentando renderizar milhares de arquivos em um só lugar. A arquitetura detecta o volume e "fatia" (shards) os diretórios de saída automaticamente quando atingem um determinado limite de quantidade ou peso.
+  
+* **Descompactação Recursiva e Deep Search:**
+  Os módulos não apenas leem a superfície da pasta. Eles penetram subdiretórios e conseguem "explodir" arquivos compactados de dentro de outros arquivos compactados (recursão de extração).
 
-Auto-tuning: O script identifica os núcleos lógicos da CPU e equilibra:
+* **Varredura em Tempo Real (Stack-based Scandir):**
+  Em vez do clássico (e lento) `os.walk` que armazena a árvore inteira na memória RAM antes de processar, o sistema de busca foi refatorado para utilizar iteradores de disco (`os.scandir`) acoplados a uma estrutura de dados de Pilha. O arquivo é analisado e descartado instantaneamente, proporcionando varreduras de **milhões de arquivos em segundos**, com consumo irrisório de RAM.
 
-Extração: Menos threads (processo pesado de CPU/IO).
+* **Stream de Regex Otimizado para XML:**
+  O buscador de CNPJ / Chave de Acesso extrai buffers de strings diretamente usando codificação seletiva (UTF-8 com fallback para Latin-1) aplicando Regex apenas nos blocos numéricos. Ele não faz o "parse" formal de tags do XML, que seria milhares de vezes mais lento.
 
-Organização: Mais threads (processo leve de metadados).
-
-📋 Como Configurar
-Pré-requisitos
-Python 3.7+
-
-UnRAR Tool: Para suporte a arquivos .rar, é necessário ter o UnRAR.exe (Windows - geralmente em C:\Program Files\WinRAR) ou unrar/unar (Linux/Mac) instalado e no PATH.
-
-Configurações Rápidas
-No cabeçalho do arquivo, você pode ajustar:
-
-MAX_UNCOMPRESSED_BYTES: Limite de segurança para extração (padrão 50GB).
-
-shard_subdir: Comente esta função se preferir que os arquivos fiquem todos na raiz da pasta da extensão (não recomendado para mais de 10k arquivos por tipo).
-
-📖 Fluxo de Operação
-Extração: O script busca todos os .zip e .rar e os extrai "no lugar".
-
-Recursividade: Se dentro de um ZIP houver outro ZIP, ele será detectado e extraído na rodada seguinte.
-
-Sieve (Peneira): Todos os arquivos (originais e extraídos) são movidos para EXTENSAO/HASH1/HASH2/ARQUIVO.
-
-Cleanup: Pastas vazias são removidas e um log CSV detalhado é gerado em caso de permissões negadas ou arquivos corrompidos.
+## 🚀 Como Executar
+Basta ter o ambiente Python configurado com o `PySide6` e executar o app central:
+```bash
+python app.py
+```

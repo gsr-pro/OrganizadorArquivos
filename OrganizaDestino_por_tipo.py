@@ -373,11 +373,11 @@ def classify_file_fast(path: str) -> str:
             chunk = f.read(4096)
             chunk_upper = chunk.upper()
             
-            # XML: NFe, CTe
+            # XML: detectar CTe/cteProc antes de NFe para evitar falsos positivos
+            if b"INFCTE" in chunk_upper or b"CTEPROC" in chunk_upper:
+                return "CTE"
             if b"INFNFE" in chunk_upper:
                 return "NFE"
-            if b"INFCTE" in chunk_upper:
-                return "CTE"
             
             # SPED
             first_pipe = chunk.find(b"|")
@@ -425,7 +425,7 @@ def classify_file_fast(path: str) -> str:
                         return "EVENTO"
                 if tag == "infNFe":
                     return "NFE"
-                if tag == "infCte":
+                if tag in ("infCte", "cteProc"):
                     return "CTE"
                 if tag in _NFSE_TAGS:
                     is_nfse = True

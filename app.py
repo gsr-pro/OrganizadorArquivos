@@ -101,7 +101,7 @@ class OrganizadorMainWindow(QMainWindow):
         desc_label = QLabel(
             "📄 Classifica arquivos por conteúdo (não só extensão):\n"
             "🔹 XML: NFe, CTe, NFSe Nacional/Municipal, Eventos\n"
-            "🔹 SPED: ECD, ECF, EFD, FISS\n"
+            "🔹 SPED: ECD, ECF, EFDF, EFDC\n"
             "🔹 Extrai arquivos .zip e .rar recursivamente\n"
             "🔹 Usa sharding para evitar pastas com muitos arquivos\n"
             "🔹 Limpa pastas vazias após organização"

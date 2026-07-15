@@ -48,6 +48,18 @@ class SearchWorkerThread(QThread):
         self.numero_doc = numero_doc.strip()
         self.cnpj = cnpj.strip()
 
+        # Pré-calcular critérios de busca limpos de caracteres não numéricos
+        self.chave_limpa = re.sub(r"[^0-9]", "", self.chave_acesso)
+        self.numero_limpo = re.sub(r"[^0-9]", "", self.numero_doc)
+        self.cnpj_limpa = re.sub(r"[^0-9]", "", self.cnpj)
+
+        # Pré-calcular o CNPJ ou CPF formatado padrão para busca flexível (ex: NFS-e municipais)
+        self.cnpj_formatada = ""
+        if len(self.cnpj_limpa) == 14:
+            self.cnpj_formatada = f"{self.cnpj_limpa[:2]}.{self.cnpj_limpa[2:5]}.{self.cnpj_limpa[5:8]}/{self.cnpj_limpa[8:12]}-{self.cnpj_limpa[12:]}"
+        elif len(self.cnpj_limpa) == 11:
+            self.cnpj_formatada = f"{self.cnpj_limpa[:3]}.{self.cnpj_limpa[3:6]}.{self.cnpj_limpa[6:9]}-{self.cnpj_limpa[9:]}"
+
     def extract_text_from_xml(self, file_path):
         """Extrai todo o texto do XML para busca rápida (sem parse completo)"""
         try:
@@ -61,29 +73,24 @@ class SearchWorkerThread(QThread):
                 return ""
 
     def matches_criteria(self, xml_text):
-        """Verifica se o XML corresponde aos critérios de busca"""
-        # Limpar critérios de busca
-        criteria_matched = True
-
+        """Verifica se o XML corresponde aos critérios de busca de forma otimizada"""
+        # Utiliza busca direta por substring, evitando o overhead drástico do re.sub no XML inteiro.
+        
         # Verificar Chave de Acesso (se informada)
-        if self.chave_acesso:
-            chave_limpa = re.sub(r"[^0-9]", "", self.chave_acesso)
-            if chave_limpa not in re.sub(r"[^0-9]", "", xml_text):
-                criteria_matched = False
+        if self.chave_limpa and (self.chave_limpa not in xml_text):
+            return False
 
         # Verificar Número do Documento (se informado)
-        if criteria_matched and self.numero_doc:
-            numero_limpo = re.sub(r"[^0-9]", "", self.numero_doc)
-            if numero_limpo not in re.sub(r"[^0-9]", "", xml_text):
-                criteria_matched = False
+        if self.numero_limpo and (self.numero_limpo not in xml_text):
+            return False
 
         # Verificar CNPJ (se informado)
-        if criteria_matched and self.cnpj:
-            cnpj_limpo = re.sub(r"[^0-9]", "", self.cnpj)
-            if cnpj_limpo not in re.sub(r"[^0-9]", "", xml_text):
-                criteria_matched = False
+        if self.cnpj_limpa:
+            # Verifica o CNPJ no formato limpo e no formato formatado padrão
+            if (self.cnpj_limpa not in xml_text) and (not self.cnpj_formatada or self.cnpj_formatada not in xml_text):
+                return False
 
-        return criteria_matched
+        return True
 
     def run(self):
         try:

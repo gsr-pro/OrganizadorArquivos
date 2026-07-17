@@ -374,6 +374,8 @@ def classify_file_fast(path: str) -> str:
             chunk_upper = chunk.upper()
             
             # XML: detectar CTe/cteProc antes de NFe para evitar falsos positivos
+            if b"<INUTNFE" in chunk_upper or b":INUTNFE" in chunk_upper:
+                return "INUTILIZADO"
             if b"INFCTE" in chunk_upper or b"CTEPROC" in chunk_upper:
                 return "CTE"
             if b"INFNFE" in chunk_upper:
@@ -423,6 +425,10 @@ def classify_file_fast(path: str) -> str:
                     root_upper = root_tag.upper()
                     if any(root_upper.startswith(m) or m in root_upper for m in _EVENTO_MARKERS):
                         return "EVENTO"
+                    if root_upper == "INUTNFE":
+                        return "INUTILIZADO"
+                if tag == "inutNFe":
+                    return "INUTILIZADO"
                 if tag == "infNFe":
                     return "NFE"
                 if tag in ("infCte", "cteProc"):

@@ -149,6 +149,7 @@ class OrganizadorMainWindow(QMainWindow):
         desc_layout = QVBoxLayout(desc_group)
         desc_label = QLabel(
             "🔍 Busca arquivos XML por Chave de Acesso, Número do Documento e/ou CNPJ.\n"
+            "🔹 Informe várias chaves separadas por vírgula ou ponto e vírgula.\n"
             "🔹 Preencha um ou mais campos para filtrar.\n"
             "🔹 Clique duas vezes no resultado para abrir o arquivo."
         )
@@ -175,7 +176,7 @@ class OrganizadorMainWindow(QMainWindow):
         criteria_layout = QGridLayout()
         criteria_layout.addWidget(QLabel("Chave de Acesso:"), 0, 0)
         self.chave_acesso_edit = QLineEdit()
-        self.chave_acesso_edit.setPlaceholderText("Digite a chave de acesso (44 dígitos)...")
+        self.chave_acesso_edit.setPlaceholderText("Uma ou mais chaves (separadas por vírgula ou ;)...")
         criteria_layout.addWidget(self.chave_acesso_edit, 0, 1)
         criteria_layout.addWidget(QLabel("Número do Documento:"), 1, 0)
         self.numero_doc_edit = QLineEdit()

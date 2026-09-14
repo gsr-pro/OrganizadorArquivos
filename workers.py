@@ -49,7 +49,11 @@ class SearchWorkerThread(QThread):
         self.cnpj = cnpj.strip()
 
         # Pré-calcular critérios de busca limpos de caracteres não numéricos
-        self.chave_limpa = re.sub(r"[^0-9]", "", self.chave_acesso)
+        self.chaves_limpas = [
+            re.sub(r"[^0-9]", "", chave)
+            for chave in re.split(r"[,;\n]+", self.chave_acesso)
+            if re.sub(r"[^0-9]", "", chave)
+        ]
         self.numero_limpo = re.sub(r"[^0-9]", "", self.numero_doc)
         self.cnpj_limpa = re.sub(r"[^0-9]", "", self.cnpj)
 
@@ -76,8 +80,8 @@ class SearchWorkerThread(QThread):
         """Verifica se o XML corresponde aos critérios de busca de forma otimizada"""
         # Utiliza busca direta por substring, evitando o overhead drástico do re.sub no XML inteiro.
         
-        # Verificar Chave de Acesso (se informada)
-        if self.chave_limpa and (self.chave_limpa not in xml_text):
+        # Verificar Chave de Acesso (se informada): qualquer chave pode corresponder.
+        if self.chaves_limpas and not any(chave in xml_text for chave in self.chaves_limpas):
             return False
 
         # Verificar Número do Documento (se informado)
